@@ -1,0 +1,19 @@
+[project]
+name = "lsh-cascade-poc"
+version = "0.1.0"
+description = "PoC for LSH-based 3-stage filtering in large-scale vector search"
+readme = "SPECIFICATION.md"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.0.0",
+    "sentence-transformers>=3.0.0",
+    "datasets>=2.10.0",
+    "numpy>=1.26.0",
+    "pandas>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "ruff",
+]
