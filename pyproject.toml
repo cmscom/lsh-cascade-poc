@@ -12,6 +12,13 @@ dependencies = [
     "pandas>=2.0.0",
 ]
 
+[project.optional-dependencies]
+experiment = [
+    "jupyterlab>=4.0.0",
+    "ipywidgets>=8.0.0",
+    "matplotlib>=3.7.0",
+]
+
 [dependency-groups]
 dev = [
     "pytest",

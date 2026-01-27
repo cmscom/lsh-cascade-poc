@@ -125,12 +125,13 @@ class TestLSHCascadeSearcher:
 
     def test_empty_candidates(self, in_memory_db, simhash_generator):
         """Should handle empty candidate set gracefully."""
+        rng = np.random.default_rng(42)
         # Create a document with specific chunks
         df = pd.DataFrame(
             {
                 "id": [0],
                 "text": ["test"],
-                "vector": [np.random.rand(1024).tolist()],
+                "vector": [rng.random(1024).tolist()],
                 "simhash": ["A" * 32],
                 "lsh_chunks": [["c0_AAAA", "c1_BBBB"]],
             }
@@ -146,7 +147,7 @@ class TestLSHCascadeSearcher:
         )
 
         # Query should return empty or limited results
-        query = np.random.rand(1024).astype(np.float32)
+        query = rng.random(1024).astype(np.float32)
         results, metrics = searcher.search(query, top_k=5)
 
         # Should not crash, may return 0 or few results

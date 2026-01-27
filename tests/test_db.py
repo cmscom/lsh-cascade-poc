@@ -16,14 +16,15 @@ class TestVectorDatabase:
 
     def test_insert_and_count(self, in_memory_db):
         """Should insert documents and count correctly."""
+        rng = np.random.default_rng(42)
         df = pd.DataFrame(
             {
                 "id": [0, 1, 2],
                 "text": ["doc1", "doc2", "doc3"],
                 "vector": [
-                    np.random.rand(1024).tolist(),
-                    np.random.rand(1024).tolist(),
-                    np.random.rand(1024).tolist(),
+                    rng.random(1024).tolist(),
+                    rng.random(1024).tolist(),
+                    rng.random(1024).tolist(),
                 ],
                 "simhash": ["A" * 32, "B" * 32, "C" * 32],
                 "lsh_chunks": [
@@ -40,14 +41,15 @@ class TestVectorDatabase:
 
     def test_lsh_chunk_search(self, in_memory_db):
         """Should find documents with matching chunks."""
+        rng = np.random.default_rng(42)
         df = pd.DataFrame(
             {
                 "id": [0, 1, 2],
                 "text": ["match1", "match2", "no_match"],
                 "vector": [
-                    np.random.rand(1024).tolist(),
-                    np.random.rand(1024).tolist(),
-                    np.random.rand(1024).tolist(),
+                    rng.random(1024).tolist(),
+                    rng.random(1024).tolist(),
+                    rng.random(1024).tolist(),
                 ],
                 "simhash": ["A" * 32, "B" * 32, "C" * 32],
                 "lsh_chunks": [
@@ -76,14 +78,15 @@ class TestVectorDatabase:
 
     def test_lsh_chunk_or_search(self, in_memory_db):
         """Should find documents matching ANY of the query chunks."""
+        rng = np.random.default_rng(42)
         df = pd.DataFrame(
             {
                 "id": [0, 1, 2],
                 "text": ["doc1", "doc2", "doc3"],
                 "vector": [
-                    np.random.rand(1024).tolist(),
-                    np.random.rand(1024).tolist(),
-                    np.random.rand(1024).tolist(),
+                    rng.random(1024).tolist(),
+                    rng.random(1024).tolist(),
+                    rng.random(1024).tolist(),
                 ],
                 "simhash": ["A" * 32, "B" * 32, "C" * 32],
                 "lsh_chunks": [
@@ -103,11 +106,12 @@ class TestVectorDatabase:
 
     def test_get_by_ids(self, in_memory_db):
         """Should retrieve documents by ID list."""
+        rng = np.random.default_rng(42)
         df = pd.DataFrame(
             {
                 "id": [0, 1, 2, 3, 4],
                 "text": ["a", "b", "c", "d", "e"],
-                "vector": [np.random.rand(1024).tolist() for _ in range(5)],
+                "vector": [rng.random(1024).tolist() for _ in range(5)],
                 "simhash": [f"{i}" * 32 for i in range(5)],
                 "lsh_chunks": [["c0_0000"] for _ in range(5)],
             }
@@ -126,11 +130,12 @@ class TestVectorDatabase:
 
     def test_clear(self, in_memory_db):
         """Should clear all documents."""
+        rng = np.random.default_rng(42)
         df = pd.DataFrame(
             {
                 "id": [0],
                 "text": ["test"],
-                "vector": [np.random.rand(1024).tolist()],
+                "vector": [rng.random(1024).tolist()],
                 "simhash": ["A" * 32],
                 "lsh_chunks": [["c0_0000"]],
             }

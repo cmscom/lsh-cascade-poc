@@ -59,8 +59,9 @@ class TestWikipediaLoader:
         """Embedding should return correct shape."""
         from src.loader import WikipediaLoader, EMBEDDING_DIM
 
+        rng = np.random.default_rng(42)
         mock_model = MagicMock()
-        mock_model.encode.return_value = np.random.rand(3, EMBEDDING_DIM)
+        mock_model.encode.return_value = rng.random((3, EMBEDDING_DIM))
 
         with patch("src.loader.SentenceTransformer", return_value=mock_model):
             loader = WikipediaLoader()
@@ -73,8 +74,9 @@ class TestWikipediaLoader:
         """Query embedding should use 'query: ' prefix."""
         from src.loader import WikipediaLoader, EMBEDDING_DIM
 
+        rng = np.random.default_rng(42)
         mock_model = MagicMock()
-        mock_model.encode.return_value = np.random.rand(1, EMBEDDING_DIM)
+        mock_model.encode.return_value = rng.random((1, EMBEDDING_DIM))
 
         with patch("src.loader.SentenceTransformer", return_value=mock_model):
             loader = WikipediaLoader()
@@ -92,9 +94,10 @@ class TestLoadMixedWikipedia:
         """Should return DataFrame with required columns."""
         from src.loader import load_mixed_wikipedia, EMBEDDING_DIM
 
+        rng = np.random.default_rng(42)
         mock_model = MagicMock()
         # Return embeddings for each text
-        mock_model.encode.return_value = np.random.rand(5, EMBEDDING_DIM)
+        mock_model.encode.return_value = rng.random((5, EMBEDDING_DIM))
 
         mock_dataset = MagicMock()
         mock_dataset.shuffle.return_value = mock_dataset
@@ -114,8 +117,9 @@ class TestLoadMixedWikipedia:
         """SimHash should be 32-char hex string."""
         from src.loader import load_mixed_wikipedia, EMBEDDING_DIM
 
+        rng = np.random.default_rng(42)
         mock_model = MagicMock()
-        mock_model.encode.return_value = np.random.rand(3, EMBEDDING_DIM)
+        mock_model.encode.return_value = rng.random((3, EMBEDDING_DIM))
 
         mock_dataset = MagicMock()
         mock_dataset.shuffle.return_value = mock_dataset
@@ -136,8 +140,9 @@ class TestLoadMixedWikipedia:
         """LSH chunks should be list of prefixed hex strings."""
         from src.loader import load_mixed_wikipedia, EMBEDDING_DIM
 
+        rng = np.random.default_rng(42)
         mock_model = MagicMock()
-        mock_model.encode.return_value = np.random.rand(2, EMBEDDING_DIM)
+        mock_model.encode.return_value = rng.random((2, EMBEDDING_DIM))
 
         mock_dataset = MagicMock()
         mock_dataset.shuffle.return_value = mock_dataset
