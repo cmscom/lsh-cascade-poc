@@ -11,6 +11,7 @@ from numpy.typing import NDArray
 
 from src.db import VectorDatabase
 from src.lsh import SimHashGenerator, chunk_hash, hamming_distance
+from src.e2lsh import E2LSHHasher, E2LSHIndex
 
 
 @dataclass
@@ -261,3 +262,152 @@ class HNSWSearcher:
             )
 
         return results, elapsed
+
+
+class E2LSHCascadeSearcher:
+    """E2LSH-based cascade search.
+
+    Uses E2LSH (Euclidean LSH) with multiple hash tables for candidate
+    retrieval, followed by exact cosine similarity reranking.
+
+    Stage 1: E2LSH hash table lookup (candidates from all tables)
+    Stage 2: Exact reranking by cosine similarity
+    """
+
+    def __init__(
+        self,
+        vectors: NDArray[np.floating],
+        texts: list[str],
+        ids: list[int],
+        w: float = 8.0,
+        k: int = 4,
+        num_tables: int = 8,
+        seed: int = 42,
+    ) -> None:
+        """Initialize the E2LSH searcher.
+
+        Args:
+            vectors: All document vectors of shape (n, dim).
+            texts: List of document texts.
+            ids: List of document IDs.
+            w: E2LSH bucket width.
+            k: Number of hash functions per table.
+            num_tables: Number of hash tables (L).
+            seed: Random seed for reproducibility.
+        """
+        self.vectors = vectors.astype(np.float32)
+        self.texts = texts
+        self.ids = ids
+        self.dim = vectors.shape[1]
+
+        # Initialize E2LSH
+        self.hasher = E2LSHHasher(
+            dim=self.dim,
+            w=w,
+            k=k,
+            num_tables=num_tables,
+            seed=seed,
+        )
+        self.index = E2LSHIndex(self.hasher)
+
+        # Build index
+        self.index.build(self.vectors)
+
+    def search(
+        self,
+        query_vector: NDArray[np.floating],
+        top_k: int = 10,
+        step1_max_candidates: int = 100,
+    ) -> tuple[list[SearchResult], SearchMetrics]:
+        """Execute E2LSH cascade search.
+
+        Args:
+            query_vector: Query vector.
+            top_k: Number of final results.
+            step1_max_candidates: Max candidates from E2LSH lookup.
+
+        Returns:
+            Tuple of (results, metrics).
+        """
+        total_start = time.perf_counter()
+        total_docs = len(self.vectors)
+
+        # Stage 1: E2LSH hash table lookup
+        step1_start = time.perf_counter()
+        candidate_indices = self._step1_e2lsh_lookup(query_vector, step1_max_candidates)
+        step1_time = (time.perf_counter() - step1_start) * 1000
+        step1_count = len(candidate_indices)
+
+        # Stage 2: Exact reranking
+        step2_start = time.perf_counter()
+        results = self._step2_exact_rerank(candidate_indices, query_vector, top_k)
+        step2_time = (time.perf_counter() - step2_start) * 1000
+
+        total_time = (time.perf_counter() - total_start) * 1000
+
+        metrics = SearchMetrics(
+            total_docs=total_docs,
+            step1_candidates=step1_count,
+            step2_candidates=step1_count,  # No intermediate step
+            final_results=len(results),
+            step1_time_ms=step1_time,
+            step2_time_ms=0.0,
+            step3_time_ms=step2_time,
+            total_time_ms=total_time,
+        )
+
+        return results, metrics
+
+    def _step1_e2lsh_lookup(
+        self,
+        query_vector: NDArray[np.floating],
+        max_candidates: int,
+    ) -> list[int]:
+        """Stage 1: E2LSH hash table lookup.
+
+        Args:
+            query_vector: Query vector.
+            max_candidates: Maximum candidates to return.
+
+        Returns:
+            List of candidate indices.
+        """
+        return self.index.query(query_vector, top_k=max_candidates)
+
+    def _step2_exact_rerank(
+        self,
+        candidate_indices: list[int],
+        query_vector: NDArray[np.floating],
+        top_k: int,
+    ) -> list[SearchResult]:
+        """Stage 2: Exact cosine similarity reranking.
+
+        Args:
+            candidate_indices: Candidate vector indices.
+            query_vector: Query vector.
+            top_k: Number of final results.
+
+        Returns:
+            Top K results with cosine similarity scores.
+        """
+        if not candidate_indices:
+            return []
+
+        # Batch compute similarities
+        candidate_vectors = self.vectors[candidate_indices]
+        similarities = candidate_vectors @ query_vector
+
+        # Create results with scores
+        results = []
+        for idx, sim in zip(candidate_indices, similarities):
+            results.append(
+                SearchResult(
+                    id=self.ids[idx],
+                    text=self.texts[idx],
+                    score=float(sim),
+                )
+            )
+
+        # Sort by similarity (descending) and take top K
+        results.sort(key=lambda x: x.score, reverse=True)
+        return results[:top_k]
