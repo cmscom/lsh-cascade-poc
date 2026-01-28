@@ -173,10 +173,59 @@ def hash_distance(hash1: tuple, hash2: tuple) -> int:
     return sum(1 for a, b in zip(hash1, hash2) if a != b)
 
 
+def generate_multiprobe_keys(
+    base_hash: tuple, num_probes: int = 1, max_perturbations: int = 2
+) -> list[tuple]:
+    """Generate multi-probe keys by perturbing hash values.
+
+    For a hash (h1, h2, ..., hk), generate variations by adding ±1 to elements.
+
+    Args:
+        base_hash: Original hash tuple (h1, h2, ..., hk).
+        num_probes: Number of elements to perturb simultaneously.
+        max_perturbations: Maximum number of probe keys to generate.
+
+    Returns:
+        List of probe keys including the original.
+    """
+    k = len(base_hash)
+    probe_keys = [base_hash]
+
+    if num_probes <= 0:
+        return probe_keys
+
+    # Single element perturbations (±1)
+    for i in range(k):
+        for delta in [-1, 1]:
+            new_hash = list(base_hash)
+            new_hash[i] = base_hash[i] + delta
+            probe_keys.append(tuple(new_hash))
+
+            if len(probe_keys) >= max_perturbations:
+                return probe_keys
+
+    # Double element perturbations (if num_probes >= 2)
+    if num_probes >= 2 and len(probe_keys) < max_perturbations:
+        for i in range(k):
+            for j in range(i + 1, k):
+                for delta_i in [-1, 1]:
+                    for delta_j in [-1, 1]:
+                        new_hash = list(base_hash)
+                        new_hash[i] = base_hash[i] + delta_i
+                        new_hash[j] = base_hash[j] + delta_j
+                        probe_keys.append(tuple(new_hash))
+
+                        if len(probe_keys) >= max_perturbations:
+                            return probe_keys
+
+    return probe_keys
+
+
 class E2LSHIndex:
     """E2LSH index for approximate nearest neighbor search.
 
     Uses multiple hash tables to improve recall.
+    Supports multi-probe LSH for better recall with fewer tables.
     """
 
     def __init__(self, hasher: E2LSHHasher) -> None:
@@ -214,12 +263,21 @@ class E2LSHIndex:
                     self.tables[t][h] = []
                 self.tables[t][h].append(i)
 
-    def query(self, vector: NDArray[np.floating], top_k: int = 10) -> list[int]:
+    def query(
+        self,
+        vector: NDArray[np.floating],
+        top_k: int = 10,
+        num_probes: int = 0,
+        max_probes_per_table: int = 10,
+    ) -> list[int]:
         """Find approximate nearest neighbors.
 
         Args:
             vector: Query vector of shape (dim,).
             top_k: Number of neighbors to return.
+            num_probes: Number of hash elements to perturb (0 = exact match only,
+                       1 = single element ±1, 2 = up to two elements).
+            max_probes_per_table: Maximum probe keys per table.
 
         Returns:
             List of indices of nearest neighbors.
@@ -233,9 +291,20 @@ class E2LSHIndex:
         # Collect candidates from all tables
         candidates = set()
         for t in range(self.hasher.num_tables):
-            h = query_hashes[t]
-            if h in self.tables[t]:
-                candidates.update(self.tables[t][h])
+            base_hash = query_hashes[t]
+
+            if num_probes > 0:
+                # Multi-probe: check adjacent buckets
+                probe_keys = generate_multiprobe_keys(
+                    base_hash, num_probes, max_probes_per_table
+                )
+                for h in probe_keys:
+                    if h in self.tables[t]:
+                        candidates.update(self.tables[t][h])
+            else:
+                # Exact match only
+                if base_hash in self.tables[t]:
+                    candidates.update(self.tables[t][base_hash])
 
         if not candidates:
             return []
@@ -248,6 +317,67 @@ class E2LSHIndex:
         distances.sort(key=lambda x: x[1])
 
         return [i for i, _ in distances[:top_k]]
+
+    def query_with_stats(
+        self,
+        vector: NDArray[np.floating],
+        top_k: int = 10,
+        num_probes: int = 0,
+        max_probes_per_table: int = 10,
+    ) -> tuple[list[int], dict]:
+        """Find approximate nearest neighbors with statistics.
+
+        Args:
+            vector: Query vector of shape (dim,).
+            top_k: Number of neighbors to return.
+            num_probes: Number of hash elements to perturb.
+            max_probes_per_table: Maximum probe keys per table.
+
+        Returns:
+            Tuple of (neighbor indices, stats dict).
+        """
+        if self.vectors is None:
+            raise ValueError("Index not built. Call build() first.")
+
+        query_hashes = self.hasher.hash_all_tables(vector)
+
+        candidates = set()
+        total_probes = 0
+        buckets_checked = 0
+
+        for t in range(self.hasher.num_tables):
+            base_hash = query_hashes[t]
+
+            if num_probes > 0:
+                probe_keys = generate_multiprobe_keys(
+                    base_hash, num_probes, max_probes_per_table
+                )
+            else:
+                probe_keys = [base_hash]
+
+            total_probes += len(probe_keys)
+
+            for h in probe_keys:
+                if h in self.tables[t]:
+                    buckets_checked += 1
+                    candidates.update(self.tables[t][h])
+
+        stats = {
+            'num_candidates': len(candidates),
+            'total_probes': total_probes,
+            'buckets_checked': buckets_checked,
+        }
+
+        if not candidates:
+            return [], stats
+
+        distances = [
+            (i, np.linalg.norm(self.vectors[i] - vector))
+            for i in candidates
+        ]
+        distances.sort(key=lambda x: x[1])
+
+        return [i for i, _ in distances[:top_k]], stats
 
 
 def compute_e2lsh_collision_prob(
