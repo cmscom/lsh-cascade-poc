@@ -160,6 +160,36 @@ class ITQLSH:
             return B[0]
         return B
 
+    def transform_with_confidence(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        ベクトルをバイナリハッシュに変換し、各ビットの確信度も返す
+
+        確信度 = |Z| (ITQ回転後の射影値の絶対値)
+        値が小さいほど決定境界に近く、ビットの確信度が低い
+
+        Args:
+            X: 入力ベクトル (n_samples, dim) or (dim,)
+
+        Returns:
+            binary_hash: バイナリハッシュ (n_samples, n_bits) or (n_bits,)
+            projections: ITQ回転後の実数値射影 (n_samples, n_bits) or (n_bits,)
+        """
+        if not self._is_fitted:
+            raise RuntimeError("fit()を先に呼び出してください")
+
+        single_input = X.ndim == 1
+        if single_input:
+            X = X.reshape(1, -1)
+
+        X_centered = X - self.mean_vector
+        V = X_centered @ self.pca_matrix
+        Z = V @ self.rotation_matrix
+        B = (Z > 0).astype(np.uint8)
+
+        if single_input:
+            return B[0], Z[0].astype(np.float32)
+        return B, Z.astype(np.float32)
+
     def hash_to_int(self, binary_hash: np.ndarray) -> int:
         """バイナリハッシュを整数に変換（128ビットまで対応）"""
         if binary_hash.ndim == 1:
