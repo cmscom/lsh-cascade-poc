@@ -119,3 +119,19 @@
 | 93 | [wikipedia_article_discrimination](93_wikipedia_article_discrimination.ipynb) | Wikipedia記事識別 |
 | 94 | [binary_embedding_vs_itq_lsh](94_binary_embedding_vs_itq_lsh.ipynb) | バイナリEmbedding vs ITQ-LSH |
 | 95 | [onnx_cpu_inference_comparison](95_onnx_cpu_inference_comparison.ipynb) | ONNX CPU推論比較 |
+
+## 100s: チャンキング戦略
+
+| # | Notebook | 概要 |
+|---|----------|------|
+| 101 | [chunking_data_preparation](101_chunking_data_preparation.ipynb) | チャンキング実験用データ準備（Wikipedia JA/EN 各1000記事） |
+| 102 | [fixed_size_overlap_sweep](102_fixed_size_overlap_sweep.ipynb) | 固定長チャンク × オーバーラップのグリッドサーチ（E5-base, Qwen3） |
+| 103 | [boundary_aware_chunking](103_boundary_aware_chunking.ipynb) | 文・段落・セクション境界チャンキングの評価 |
+| 104 | [long_context_head_bias](104_long_context_head_bias.ipynb) | Qwen3 長文コンテキストの先頭偏重バイアス検証 |
+| 105 | [chunking_strategy_comparison](105_chunking_strategy_comparison.ipynb) | 101-104の総合比較とベストプラクティス |
+
+### 100s シリーズの結論
+- **固定長 + 25% オーバーラップが最良**（境界認識は改善なし）
+- 推奨: E5-base=256/64, Qwen3=512/128
+- Qwen3 は強い先頭偏重あり → 大チャンク (2048) の優位性は競合緩和効果が主因
+- 記事レベル検索には max-sim 集約が最適（R@10=0.956〜0.999）
