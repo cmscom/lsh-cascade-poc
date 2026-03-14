@@ -135,3 +135,21 @@
 - 推奨: E5-base=256/64, Qwen3=512/128
 - Qwen3 は強い先頭偏重あり → 大チャンク (2048) の優位性は競合緩和効果が主因
 - 記事レベル検索には max-sim 集約が最適（R@10=0.956〜0.999）
+
+## 110s: Voronoi分割
+
+| # | Notebook | 概要 |
+|---|----------|------|
+| 111 | [voronoi_partition_evaluation](111_voronoi_partition_evaluation.ipynb) | Voronoi分割（k-meansパーティション）の基本評価。C×Pグリッドサーチ、ITQ系との比較、汎化テスト |
+| 112 | [voronoi_generalization_private](112_voronoi_generalization_private.ipynb) | Wikipedia学習セントロイドのドメイン外（非公開データ）への汎化性能評価 |
+| 113 | [voronoi_image_text_comparison](113_voronoi_image_text_comparison.ipynb) | 画像(顔認識) vs テキストの最適パラメータ比較。Embedding空間構造分析、top-10散布分析 |
+| 114 | [voronoi_multi_assign](114_voronoi_multi_assign.ipynb) | マルチアサイン(assign=2,3)の効果。画像プロジェクトと同方式での評価 |
+| 115 | [voronoi_centroid_export](115_voronoi_centroid_export.ipynb) | セントロイドのエクスポート（NumPy + JSON）。利用例コード付き |
+
+### 110s シリーズの結論
+- **Voronoi分割はITQ系パイプラインを全削減率帯で上回る**（Pareto最適が全てVoronoi）
+- 画像(顔認識)ではC=256, assign=2, P=2で有効 → テキストでも同方式が有効
+- テキストはembedding空間のランダム-近傍Gapが画像の1/5 → probeを多く取る必要あるが、assign=2で緩和
+- **assign=2, C=256が推奨**: JA R@10≥85%はP=2(IN句2要素)、EN R@10≥90%はA=3,P=4(IN句4要素)で達成
+- Wikipedia学習セントロイドはドメイン外データでも汎化する（再学習不要）
+- Firestore: `pivot_ids` KeywordIndex/array-contains-any、Zope: KeywordIndex + `operator='or'`
