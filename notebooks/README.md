@@ -145,6 +145,8 @@
 | 113 | [voronoi_image_text_comparison](113_voronoi_image_text_comparison.ipynb) | 画像(顔認識) vs テキストの最適パラメータ比較。Embedding空間構造分析、top-10散布分析 |
 | 114 | [voronoi_multi_assign](114_voronoi_multi_assign.ipynb) | マルチアサイン(assign=2,3)の効果。画像プロジェクトと同方式での評価 |
 | 115 | [voronoi_centroid_export](115_voronoi_centroid_export.ipynb) | セントロイドのエクスポート（NumPy + JSON）。利用例コード付き |
+| 116 | [voronoi_query_passage_prefix](116_voronoi_query_passage_prefix.ipynb) | E5のquery:/passage:プレフィックスがVoronoi検索に与える影響の検証 |
+| 117 | [voronoi_minilm_evaluation](117_voronoi_minilm_evaluation.ipynb) | all-MiniLM-L6-v2の評価とセントロイドエクスポート |
 
 ### 110s シリーズの結論
 - **Voronoi分割はITQ系パイプラインを全削減率帯で上回る**（Pareto最適が全てVoronoi）
