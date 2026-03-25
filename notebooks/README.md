@@ -119,6 +119,8 @@
 | 93 | [wikipedia_article_discrimination](93_wikipedia_article_discrimination.ipynb) | Wikipedia記事識別 |
 | 94 | [binary_embedding_vs_itq_lsh](94_binary_embedding_vs_itq_lsh.ipynb) | バイナリEmbedding vs ITQ-LSH |
 | 95 | [onnx_cpu_inference_comparison](95_onnx_cpu_inference_comparison.ipynb) | ONNX CPU推論比較 |
+| 96 | [nomic_embed_v2_moe_evaluation](96_nomic_embed_v2_moe_evaluation.ipynb) | nomic-embed-text-v2-moe 総合評価（品質・STS・CPU速度・ITQ-LSH） |
+| 97 | [nomic_embed_v1_5_evaluation](97_nomic_embed_v1_5_evaluation.ipynb) | nomic-embed-text-v1.5 総合評価（Dense 100M、v2-moeとの比較） |
 
 ## 100s: チャンキング戦略
 
@@ -147,6 +149,7 @@
 | 115 | [voronoi_centroid_export](115_voronoi_centroid_export.ipynb) | セントロイドのエクスポート（NumPy + JSON）。利用例コード付き |
 | 116 | [voronoi_query_passage_prefix](116_voronoi_query_passage_prefix.ipynb) | E5のquery:/passage:プレフィックスがVoronoi検索に与える影響の検証 |
 | 117 | [voronoi_minilm_evaluation](117_voronoi_minilm_evaluation.ipynb) | all-MiniLM-L6-v2の評価とセントロイドエクスポート |
+| 118 | [voronoi_nomic_evaluation](118_voronoi_nomic_evaluation.ipynb) | nomic-embed-text-v2-moeのVoronoi分割評価とセントロイドエクスポート |
 
 ### 110s シリーズの結論
 - **Voronoi分割はITQ系パイプラインを全削減率帯で上回る**（Pareto最適が全てVoronoi）
