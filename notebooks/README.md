@@ -158,3 +158,36 @@
 - **assign=2, C=256が推奨**: JA R@10≥85%はP=2(IN句2要素)、EN R@10≥90%はA=3,P=4(IN句4要素)で達成
 - Wikipedia学習セントロイドはドメイン外データでも汎化する（再学習不要）
 - Firestore: `pivot_ids` KeywordIndex/array-contains-any、Zope: KeywordIndex + `operator='or'`
+
+## 120s: 射影ベース枝刈り（TurboQuant着想）
+
+| # | Notebook | 概要 |
+|---|----------|------|
+| 121 | [projection_geometric_analysis](121_projection_geometric_analysis.ipynb) | セントロイド空間の幾何学的分析。射影方向（ランダム/PCA/回転/角度/セントロイド相対）の分離能力AUCを比較（E5-base） |
+| 122 | [multi_projection_pruning](122_multi_projection_pruning.ipynb) | 5種類の射影フィルタ（Rotated/PCA/Angular/CentroidRel/Hamming）のRecall vs 候補数トレードオフ比較（E5-base） |
+| 123 | [projection_cascade_combination](123_projection_cascade_combination.ipynb) | Voronoi+射影フィルタのカスケード構成、複合フィルタ(AND/OR)、適応的閾値、3段カスケード、Recall@k曲線（E5-base） |
+| 124 | [projection_nomic_v2_moe](124_projection_nomic_v2_moe.ipynb) | nomic-embed-text-v2-moe (768D, MoE) での射影枝刈り検証。E5-baseとの比較 |
+| 125 | [projection_bge_m3](125_projection_bge_m3.ipynb) | bge-m3 (1024D) での射影枝刈り検証。セントロイド・ITQハッシュのインライン学習含む |
+| 126 | [projection_ruri_v3](126_projection_ruri_v3.ipynb) | ruri-v3 (768D, 日本語特化) での射影枝刈り検証。E5-baseと極めて近い結果 |
+| 127 | [projection_qwen3_06b](127_projection_qwen3_06b.ipynb) | qwen3-0.6b (1024D, LLMベース) での射影枝刈り検証 |
+| 128 | [projection_summary](128_projection_summary.ipynb) | **NB121-127の5モデル横断サマリ**。AUCヒートマップ、Recall比較、空間構造分析、総合結論 |
+
+### 120s シリーズの結論
+
+- **Voronoi分割はモデル非依存に有効**: 全5モデルでP=5のRecall@10≈0.91-0.93
+- **セル内フィルタの最適手法はモデルに依存**:
+  - Q→Centroid AUC > 0.85（放射状構造）→ **CentroidRel** が最良: E5-base, ruri-v3
+  - Q→Centroid AUC < 0.85（等方的構造）→ **Rotated** が最良: nomic-v2, bge-m3, qwen3-0.6b
+- **Voronoi + フィルタで候補3-6%、R@10≈0.90-0.92** が全モデルで達成可能
+- TurboQuantのBeta分布仮定は全モデルで不成立だが、ランダム回転の枝刈りフィルタとしての実用的効果は確認
+- **E5-baseのみHamming距離が壊滅的**（R@10=0.007 at ham<=30）。他4モデルではham<=50でR@10≈0.86-0.89
+
+#### モデル別推奨構成
+
+| モデル | Dim | 推奨フィルタ | R@10 | 候補比率 |
+|---|---|---|---|---|
+| E5-base | 768 | Voronoi P=5 + CentroidRel keep=30% | 0.906 | 3.5% |
+| ruri-v3 | 768 | Voronoi P=5 + CentroidRel keep=50% | 0.922 | 5.6% |
+| nomic-v2-moe | 768 | Voronoi P=5 + Rotated M=32 pct=30 | 0.900 | 2.3% |
+| bge-m3 | 1024 | Voronoi P=5 + Rotated M=64 pct=30 | 0.926 | 3.4% |
+| qwen3-0.6b | 1024 | Voronoi P=5 + Rotated M=64 pct=30 | 0.919 | 3.0% |
